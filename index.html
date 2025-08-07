@@ -89,7 +89,9 @@
 
 ## Beyond the GIL: Python’s Journey to Free Threading
 
-**RND Light Talk**, July 2025
+**PyCon Israel (Dry Run)**, August 2025
+
+[bit.ly/nogil](https://bit.ly/nogil)
 
 <div class="" style="position: absolute; left: 0%; top: 70%; height: 30%; width: 40%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
 
@@ -97,40 +99,131 @@ Yonatan Bitton
 </br>
 [@bityob](https://linktr.ee/bityob)
 </div>
-</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" data-visibility="hidden" -->
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
 ### `whoami`
 
-- Developer on the Core team at **Fortinet**
+- I'm **Yonatan Bitton**, core team @ **Fortinet**
 -  We provide cybersecurity protection for emails and more
 -  Passionate about **Python**, enjoy solving tough **challenges** and understanding things **inside out**
 
 Notes:
+
+- Add photo, something visual....
 
 I’m Yonatan Bitton, part of the Core team at Fortinet, where we work on cybersecurity, including email protection and more.  
 I’m deeply passionate about Python, especially diving into how things work under the hood, and love tackling tough technical challenges.
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-### Timeline
+### Agenda
 
-- 1991: Python 0.9.0
-- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->1992: Python: threads and the GIL
-- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->1996: "free threading" patch (Greg Stein)
-- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->2007: python-safethread (Adam Olsen)
-- &shy;<!-- .element: class="fragment" data-fragment-index="4" -->2016: Gilectomy (Larry Hastings)
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Timeline
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Why GIL
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Why Not GIL
+- &shy;<!-- .element: class="fragment" data-fragment-index="4" -->Why Not Just Remove the GIL?
+- &shy;<!-- .element: class="fragment" data-fragment-index="5" -->PEP 703: Making the GIL Optional
+- &shy;<!-- .element: class="fragment" data-fragment-index="6" -->**How To?**
+- &shy;<!-- .element: class="fragment" data-fragment-index="7" -->**Challenges**
+- &shy;<!-- .element: class="fragment" data-fragment-index="8" -->Summary
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-### Timeline 
+### Timeline
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+- 1991: Python 0.9.0
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->1992: Threads + the GIL introduced
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->1996: Greg Stein's "free threading" patch
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->2007: python-safethread by Adam Olsen
+- &shy;<!-- .element: class="fragment" data-fragment-index="4" -->2016: Gilectomy (Larry Hastings)
+
+
+Notes:
+These early efforts all ran into the same issue — too much overhead or instability without the GIL.
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+The GIL survives.
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Why the GIL?
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Global Interpreter Lock (GIL) allows only one thread to run Python code at a time
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Simplified CPython’s memory management
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Ensured thread safety with a single lock
+- &shy;<!-- .element: class="fragment" data-fragment-index="4" -->Made sense in the **single-core era**
+
+Notes:
+
+The GIL was introduced to make CPython simpler and safer.
+
+Back then, machines had just one core — so locking everything with a single global lock worked fine.  
+It avoided complex thread-safe code, especially for reference counting and object access.  
+That simplicity helped Python grow quickly — but it came at a cost in multi-threaded scenarios.
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+<img src="attachments/Lectures/python_3.12_upgrade_slides/Pasted image 20250708115423.png" alt="" style="object-fit: scale-down">
+
+
+<div style="position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 40%; color: gray;">
+<a href="https://www.codecademy.com/article/understanding-the-global-interpreter-lock-gil-in-python">Source: https://www.codecademy.com/article/understanding-the-global-interpreter-lock-gil-in-python</a>
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Why Not the GIL?
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Blocks true multi-core parallelism
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Bottleneck for CPU-bound code
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Wastes modern multi-core CPUs
+
+Notes:
+
+The problem today is that all machines are multi-core — and the GIL holds us back.
+
+Even if you spawn 10 threads doing CPU work, only one will run at a time.
+That wastes available cores and forces workarounds like multiprocessing, C extensions, or asyncio.
+
+This is the core pain point that free-threaded Python finally addresses.
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### What About Workarounds?
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->AsyncIO: concurrency, not parallelism
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->C extensions: can release GIL — but risky
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Multiprocessing: works — but heavyweight
+- &shy;<!-- .element: class="fragment" data-fragment-index="4" -->Developers want **real** threads
+
+Notes:
+
+Python devs have found ways to **cope** — but each has tradeoffs.
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Why Not Just Remove the GIL?
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->The GIL is deeply embedded in CPython's memory management
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Removing it breaks assumptions across the interpreter
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Threads will race on object lifetimes, containers, and internal APIs
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### But What If We Could?...
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
 - 2021: nogil (Sam Gross)
 - &shy;<!-- .element: class="fragment" data-fragment-index="1" -->2023: PEP 703 published (Jan 2023)
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-<img src="attachments/Pasted image 20250708113730.png" alt="" style="object-fit: scale-down">
+<img src="attachments/Lectures/python_3.12_upgrade_slides/Pasted image 20250708113730.png" alt="" style="object-fit: scale-down">
 
 
 <div style="position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 40%; color: gray;">
@@ -139,13 +232,11 @@ I’m deeply passionate about Python, especially diving into how things work und
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-### Timeline 
-
-- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->2023: Meta supports and commits three engineer-years through 2025
+- 2023: Meta supports and commits three engineer-years through 2025
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-<img src="attachments/Pasted image 20250708113240.png" alt="" style="object-fit: scale-down">
+<img src="attachments/Lectures/python_3.12_upgrade_slides/Pasted image 20250708113240.png" alt="" style="object-fit: scale-down">
 
 
 <div style="position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 40%; color: gray;">
@@ -154,13 +245,15 @@ I’m deeply passionate about Python, especially diving into how things work und
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-### Timeline 
-
 - 2023: PEP 703 **accepted** with clear proviso (Oct 2023)
+
+Notes:
+
+This was huge — the core team agreed, under strict performance and compatibility conditions.
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-<img src="attachments/Pasted image 20250708114239.png" alt="" style="object-fit: scale-down">
+<img src="attachments/Lectures/python_3.12_upgrade_slides/Pasted image 20250708114239.png" alt="" style="object-fit: scale-down">
 
 
 <div style="position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 40%; color: gray;">
@@ -169,11 +262,10 @@ I’m deeply passionate about Python, especially diving into how things work und
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-### Timeline 
-
-- 2024: Python 3.13 with **experimental** support
-- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->2025: PEP 779 - Criteria for supported status for free-threaded Python
-- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->2025: Python 3.14.0b3 released in Jun 2025
+- 2024: Python 3.13 with **experimental** free-threaded build
+	- Opt-in via `--disable-gil` compile flag
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->2025: PEP 779: Criteria for supported status
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->2025: Python 3.14.0rc1 released in July 2025
 	- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Not **experimental**, not yet the default build
 - &shy;<!-- .element: class="fragment" data-fragment-index="4" -->2030~: Python default build? 
 
@@ -187,59 +279,25 @@ Notes:
 > **The free-threaded mode is experimental** and work is ongoing to improve it: expect some bugs and a substantial single-threaded performance hit.
 
 <div style="position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 70%; color: gray;">
-<a href="https://docs.python.org/3/howto/free-threading-python.html">Source: https://docs.python.org/3/howto/free-threading-python.html</a>
+<a href="https://docs.python.org/3.13/howto/free-threading-python.html">Source: https://docs.python.org/3.13/howto/free-threading-python.html</a>
 </div>
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-### So… what is this all about?
-
-- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Python is fast to write — but not always fast to run
-- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Especially limited when using **threads** on multi-core machines
-- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->The **GIL** has been a long-standing pain point
-- &shy;<!-- .element: class="fragment" data-fragment-index="4" -->Now, after years of effort, **free-threaded Python** is becoming real
-- &shy;<!-- .element: class="fragment" data-fragment-index="5" -->Let's talk about what it means — and why it's exciting
-</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
-<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
-
-### The Global Interpreter Lock (GIL)
-
-- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Global lock in CPython
-- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Blocks true multi-core parallelism
-- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Key reason behind Python’s single-thread limitations
-
-Notes:
-
-Let’s talk about the GIL:  
-The Global Interpreter Lock, or GIL, is a global lock in CPython.  
-It ensures that only one thread can execute Python bytecode at a time, even on multi-core CPUs.  
-That means your multi-threaded Python code ultimately runs on a single CPU core, creating the illusion of concurrency but blocking true parallelism for CPU-bound tasks.
-
-- The **Global Interpreter Lock (GIL)** is a mutex (mutual exclusion lock) that protects access to **CPython's internal objects**.
-- It ensures that **only one thread can execute Python bytecode at a time**, even on multi-core processors.
-- This means your multi-threaded Python program effectively uses **only one CPU core for Python code execution**, regardless of how many cores you have.
-- While it creates the _illusion_ of concurrency (tasks appear to run at the same time), it prevents true **parallelism** for CPU-bound tasks.
-</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
-<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
-
-<img src="attachments/Pasted image 20250708115423.png" alt="" style="object-fit: scale-down">
-
-
-<div style="position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 40%; color: gray;">
-<a href="https://www.codecademy.com/article/understanding-the-global-interpreter-lock-gil-in-python">Source: https://www.codecademy.com/article/understanding-the-global-interpreter-lock-gil-in-python</a>
-</div>
+### How to use?
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
 ```
 $ uv python install 3.14t
-Installed Python 3.14.0a6 in 15ms
- + cpython-3.14.0a6+freethreaded-linux-x86_64-gnu
+Installed Python 3.14.0b4 in 12.54s
+ + cpython-3.14.0b4+freethreaded-linux-x86_64-gnu (python3.14t)
 ```
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
 ```python [1-10|11-16]
+# demo-freethreaded-python.py
 import time
 from concurrent.futures import ThreadPoolExecutor
 
@@ -260,228 +318,40 @@ print(f"Done in {time.time() - start:.2f} sec")
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-```
-$ uv run --python=3.14t python demo.py
-Done in 2.21 sec
-$ uv run --python=3.14 python demo.py
-Done in 7.90 sec
+```python
+$ uv run --python=3.14 python demo-freethreaded-python.py
+Done in 9.39 sec
 ```
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-### So... why the GIL?
-
-- Simpler memory management
-- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Ensures thread safety in CPython
-- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Made sense in single-core era (Moore's law etc.)
-
-Notes:
-
-Why was the GIL created in the first place?  
-In Python’s early days, most computers had just a single core.  
-The GIL simplified CPython’s memory management and made thread safety much easier.  
-Instead of locking every object or operation, developers relied on the GIL as a single safety net.  
-It reduced the chance of subtle bugs in multi-threaded code and made development significantly simpler.
-
-- The GIL was introduced to **simplify CPython's memory management** and ensure **thread safety** for its internal data structures.
-- In the early days of computing, single-core processors were the norm. The focus was on making a single CPU unit more powerful. In this environment, the GIL made sense. 
-- It eliminated the need for complex, fine-grained locking mechanisms throughout the interpreter, making development easier and less prone to subtle bugs related to shared state.
-</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" data-visibility="hidden" -->
-<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
-
-### Concurrency vs. Parallelism
-
-- **Concurrency:** Tasks progress together
-    - Single cashier → many customers
-- **Parallelism:** Tasks run truly simultaneously
-    - Many cashiers → many customers
-
-Notes:
-
-It’s crucial to understand the difference between concurrency and parallelism.
-
-**Concurrency** means multiple tasks progress during the same period — not necessarily at the same moment. Think of a single cashier switching between customers. Each one eventually gets served, but not at the same instant.
-
-**Parallelism** is true simultaneous execution. Imagine multiple cashiers, each helping a customer at the same time. That’s genuine parallelism.
-
-The GIL lets Python achieve concurrency, but it blocks true parallelism for CPU-bound tasks.
-
-- **Concurrency:** Deals with **multiple tasks progressing over the same period**, even if not simultaneously.
-       - **Analogy:** A **single cashier serving multiple customers** by quickly switching between them. Each customer eventually gets served, but not at the exact same moment.    
-- **Parallelism:** Involves **multiple tasks truly executing simultaneously** on different processing units.
-    - **Analogy:** **Multiple cashiers, each serving a separate customer** at the same time. This is genuine simultaneous work.
-- The GIL allows Python to achieve concurrency, but it inherently limits parallelism for CPU-bound tasks.
+```python
+$ uv run --python=3.14t python demo-freethreaded-python.py
+Done in 0.99 sec
+```
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-### GIL and Thread Safety
-
-- Prevents data corruption
-- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Protects internal Python objects
-- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Not all race conditions eliminated
-
-Notes:
-
-One huge benefit of the GIL is **thread safety** for Python’s internals.
-
-It protects core Python objects like lists, dictionaries, and reference counts. Without it, multiple threads changing the same list simultaneously could corrupt its internal state — for example, mismatches between a list’s size and the actual number of items.
-
-However, the GIL does **not** prevent all race conditions.  
-For example, two threads modifying the same variable in separate lines of code can still clash if you don’t explicitly synchronize them.
-
-- The GIL prevents race conditions on **CPython's internal data structures**. This ensures that operations on core Python objects (like lists, dictionaries, reference counts) are atomic at the bytecode level, preventing inconsistencies or crashes.
-    - For example, if multiple threads tried to modify a list simultaneously, without the GIL, the list's internal state (e.g., size, elements) could become corrupted.
-- **Does the GIL prevent _all_ race conditions? No.**
-    - While individual Python bytecode operations are protected, race conditions can still occur **between different lines of Python code** if threads access and modify shared Python objects without explicit synchronization (e.g., locks, semaphores).
-    - Developers must still implement safeguards to protect shared mutable state in their own application code.
+### Removing the GIL: What Had to Change
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-### The GIL in the Multi-Core Era
-
-- Modern CPUs → multi-core
-- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->GIL bottlenecks CPU-bound apps
-- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Wastes hardware potential
-
-Notes:
-
-In the modern world, virtually all machines are multi-core.
-
-The GIL has become a bottleneck for CPU-bound applications that could otherwise distribute work across multiple cores.  
-Python threads cannot fully utilize all your CPU power because they’re stuck waiting for the GIL.
-
-That means we’re leaving a lot of hardware capacity unused.
-
-- Modern computers are almost universally **multi-core**.
-- The GIL becomes a **significant bottleneck** for **CPU-bound applications** that could otherwise benefit from running computations in parallel across multiple cores.
-- It limits the ability of multi-threaded Python programs to fully utilize available hardware resources, leading to under-utilization of CPU power.
-</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" data-visibility="hidden" -->
-<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
-
-### Threads vs. Processes
-
-- Threads → shared memory, GIL needed
-- Processes → isolated memory, parallel execution
-
-Notes:
-
-Why does the GIL specifically affect threads?  
-Threads share the same memory space in Python. Without the GIL, threads could corrupt shared data.
-
-In contrast, processes have isolated memory. Each runs its own Python interpreter and its own GIL. So you can achieve real parallelism by using multiple processes instead of threads.
-
-However, processes come with higher overhead and can be more complex to coordinate than threads.
-
-Serializing objects between processes also limited and time and resource consuming... not everything you can serialize 
-
-- **Threads** within the same Python process **share the same memory space**. This shared memory is precisely why the GIL is needed – to coordinate access and prevent data corruption.
-- **Processes**, conversely, have their **own isolated memory spaces**. Each process operates independently, with its own interpreter and objects.
-- Because processes don't share memory directly, they don't have the same synchronization challenges as threads, and therefore, each process runs with its own GIL, effectively allowing them to execute in parallel on separate cores.
-</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
-<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
-
-### Bypassing the GIL
-
-- I/O-bound tasks → GIL released
-- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->C extensions release GIL
-- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Asyncio → concurrency in one thread
-
-Notes:
-
-The GIL isn’t always a problem.
-
-For I/O-bound tasks, like reading files or waiting for network responses, Python often releases the GIL. This allows other threads to run while one thread waits.
-
-Libraries like NumPy or SciPy, written in C, can explicitly release the GIL while doing heavy calculations.
-
-Finally, Python’s `asyncio` enables high-performance concurrency on a single thread by switching tasks while waiting for I/O, avoiding thread overhead altogether.
-
- Existing Ways to Bypass the GIL Today
-
-- **I/O-Bound Operations:** For tasks that involve waiting for external resources (e.g., network requests, file I/O), the GIL is often **released by the underlying C implementation**.
-    - This allows other Python threads to run while one thread waits for I/O to complete.
-    - **`asyncio`** takes this further by enabling highly efficient, single-threaded concurrency for I/O-bound tasks through cooperative multitasking.
-- **C Extensions:** Libraries written in C (like **NumPy** or **SciPy**) can explicitly release the GIL when performing computationally intensive operations.
-    - This allows the C code to run in parallel on multiple cores. However, these extensions must manage their own thread safety for shared resources.
-</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
-<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
-
-### The Goal — Free-Threaded Python
-
-- **True** multi-core parallelism
-- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->**Preserve** single-thread speed
-- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Unlock Python’s full performance
-
-Notes:
-
-The vision is to eliminate the GIL, enabling true parallel execution of Python bytecode across multiple CPU cores.
-
-The goal is to keep single-thread performance just as fast as today, while allowing multi-threaded programs to fully utilize modern hardware.
-
-This could massively improve Python’s performance for CPU-bound applications and bring it closer to other languages that already leverage multi-core systems efficiently.
-
-The Goal: A GIL-less Python
-
-- The ultimate aim is to enable **true parallelism for multi-threaded Python applications** without compromising the performance of single-threaded code.
-- This involves allowing multiple Python threads to execute Python bytecode concurrently on different CPU cores.
-- The transition aims to provide significant performance benefits for CPU-bound workloads, unlocking the full potential of multi-core systems for Python developers.
-</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" data-visibility="hidden" -->
-<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
-
-<img src="attachments/Pasted image 20250707151317.png" alt="" style="object-fit: scale-down">
-
-
-Source: https://peps.python.org/pep-0703/
-</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" data-visibility="hidden" -->
-<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
-
-### PEP 703 – Making the GIL Optional
-
-- Proposal to allow GIL-free CPython    
-- Fundamental changes to interpreter internals
-- True multi-threading for Python
-    
-
-Notes:
-
-PEP 703 proposes making the GIL optional — meaning you could run Python without it, while still maintaining compatibility with existing code.  
-This involves major changes to how Python handles memory, object references, and threading.  
-The goal is **true multi-threading** without compromising performance or safety.
-
-
-PEP 703: Making the GIL Optional
-
-PEP 703 outlines the detailed specification for creating a GIL-free Python interpreter. This involves fundamental changes to CPython's internals to ensure thread safety without the GIL.
-</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" data-visibility="hidden" -->
-<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
-
-### Project History / Status
-
-- PEP 703 published in Jan 2023, accepted Oct 2023
-- Python 3.13 released in Oct 2024 
-	- **experimental** support with flag `--disable-gil`
-- Python 3.14.0b3 released in Jun 2025
-	- Not **experimental**, not yet the default build
-</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
-<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
-
-### Challenges 
-
-- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Reference Counting
-- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->GC
-- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Locking and atomic APIs
-- &shy;<!-- .element: class="fragment" data-fragment-index="4" -->Containers
+-  Reference Counting
+- Garbage Collection
+- Locking and atomic APIs
+- Containers Thread-Safety
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
 ### Reference Counting
 
-- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Reference count goes up with new references, down when deleted or reassigned
-- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->When it hits zero — the object is immediately freed
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Chosen for deterministic, immediate memory cleanup
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Reference count goes up with new references, down when deleted or reassigned
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->When it hits zero — the object is immediately freed
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-<img src="attachments/Pasted image 20250708122101.png" alt="" style="object-fit: scale-down">
+<img src="attachments/Lectures/python_3.12_upgrade_slides/Pasted image 20250708122101.png" alt="" style="object-fit: scale-down">
 
 
 <div style="position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 40%; color: gray;">
@@ -490,7 +360,7 @@ PEP 703 outlines the detailed specification for creating a GIL-free Python inter
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-<img src="attachments/Pasted image 20250708122306.png" alt="" style="object-fit: scale-down">
+<img src="attachments/Lectures/python_3.12_upgrade_slides/Pasted image 20250708122306.png" alt="" style="object-fit: scale-down">
 
 
 <div style="position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 40%; color: gray;">
@@ -499,7 +369,7 @@ PEP 703 outlines the detailed specification for creating a GIL-free Python inter
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-<img src="attachments/Pasted image 20250708124439.png" alt="" style="object-fit: scale-down">
+<img src="attachments/Lectures/python_3.12_upgrade_slides/Pasted image 20250708124439.png" alt="" style="object-fit: scale-down">
 
 
 <div style="position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 40%; color: gray;">
@@ -510,9 +380,9 @@ PEP 703 outlines the detailed specification for creating a GIL-free Python inter
 
 ### Why Reference Counting Is a Problem
 
-- Python tracks memory via reference counts
-- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->GIL protects those updates today
-- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Without GIL → race conditions
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" --> Python tracks memory via reference counts
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->GIL protects those updates today
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Without GIL → race conditions
 
 Notes:
 
@@ -531,6 +401,14 @@ The Challenge: Thread-Safe Reference Counting without the GIL
     - Premature deallocation: An object could be deallocated while still being referenced by another thread, leading to crashes or memory corruption.
     - Memory leaks: An object might never be deallocated if its count is incorrectly incremented or decremented.
 - **The Solution Goal:** Ensure reference counting remains correct and efficient in a multi-threaded, GIL-free environment.
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Reference Counting Fixes
+
+- Biased Reference Counting
+- Immortal Objects
+- Deferred Reference Counting
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
@@ -559,7 +437,7 @@ Solution 1: Biased Reference Counting (PEP 703 Specification)
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-```c [1-10|7|8]
+```c [1-10|7-8]
 struct _object {
   _PyObject_HEAD_EXTRA
   uintptr_t ob_tid;         // owning thread id (4-8 bytes)
@@ -577,7 +455,7 @@ struct _object {
 ### Immortal Objects
 
 - &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Common objects are never deallocated 
-	- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->`True`, `False`, `None`, small integers, etc.
+	- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->`True`, `False`, `None`, interned strings, small integers, etc.
 - &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Skip reference count updates
 - &shy;<!-- .element: class="fragment" data-fragment-index="4" -->Reduce thread contention
 
@@ -636,6 +514,15 @@ Solution 3: Limited Deferred Reference Counting (PEP 703 Specification)
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
+<img src="attachments/Lectures/nogil_slides/Pasted image 20250807170642.png" alt="" style="object-fit: scale-down">
+
+
+<div style="position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 40%; color: gray;">
+<a href="https://dev.to/pragativerma18/understanding-pythons-garbage-collection-and-memory-optimization-4mi2">Source: https://dev.to/pragativerma18/understanding-pythons-garbage-collection-and-memory-optimization-4mi2</a>
+</div>
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
 ###  GC without GIL
 
 - &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Can’t rely on the GIL to **synchronize memory access** — GC must now be **explicitly thread-safe**
@@ -653,6 +540,10 @@ Without the GIL, PEP 703:
 - The design removes the traditional **generational GC**. Instead, Python will have a single-generation collector to minimize frequent stop-the-world events.
 
 So, while it increases pause time a bit for full collections, it’s more scalable for multi-threaded apps.
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+<img src="attachments/Lectures/nogil_slides/Pasted image 20250807172259.png" alt="" style="object-fit: scale-down">
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
@@ -831,147 +722,37 @@ Notes:
     - &shy;<!-- .element: class="fragment" data-fragment-index="4" -->Conditionally increment reference count (`Py_INCREF`) if safe 
     - &shy;<!-- .element: class="fragment" data-fragment-index="5" -->Verify no changes during access 
 - &shy;<!-- .element: class="fragment" data-fragment-index="6" -->If any check fails, **fallback** acquires a lock to ensure safety
-</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" data-visibility="hidden" -->
-<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
-
-### Mimalloc & Safe Reference Counting
-
-- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Uses **mimalloc page-level tracking** to keep refcount data valid even after objects are freed
-- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->`mimalloc` allocator by Microsoft, replaces the current `pymalloc` allocator
-</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" data-visibility="hidden" -->
-<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
-
-### Memory Management with mimalloc
-
-- Replace `pymalloc` with `mimalloc` 
-- Thread-safe allocator
-- Unlocks further GC improvements
-
-Notes:
-
-In current CPython, `pymalloc` handles small object allocations efficiently but **isn’t thread-safe** without the GIL.  
-PEP 703 proposes switching to **mimalloc**, which is fast, thread-safe, and works well for **also** small allocations.
-
-Benefits include:
-
-- Mimalloc’s structures help the GC locate all Python objects without needing the linked object list CPython uses today.
-- Mimalloc enables collections like dicts to perform read operations without always locking, thanks to heap and size-class separation.
-    
-
-A key rule is:
-
-> **Python objects must be allocated through official APIs, never via raw `malloc` or `new`.**
-</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" data-visibility="hidden" -->
-<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
-
-### Changes to CPython Free Lists
-
-- Free lists moved to per-thread state
-- Avoids lock contention
-- Speeds up frequent small-object reuse
-    
-
-`Notes:`  
-CPython uses **free lists** to cache frequently-used objects like small tuples or integers.  
-Without the GIL, shared global free lists could cause lock contention.
-
-So in PEP 703:
-
-- Free lists are moved to **`PyThreadState`**, i.e. they become thread-local.
-- This avoids locking between threads when allocating or freeing these small objects.
-    
-
-It’s a good example of how Python’s runtime data structures are being reshaped for thread safety.
-
-- A **free list** is a reusable pool of small object instances.
-- It helps Python manage memory faster and more efficiently.
-- Internally, types like `tuple`, `int`, and `frame` use them.
-- In newer Python versions, free lists are stored per-thread for better multi-threading support.
-</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" data-visibility="hidden" -->
-<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
-
-### Thread States and “Stop-the-World”
-
-- New PyThreadState “status”
-- States:
-    - ATTACHED
-    - DETACHED
-    - GC
-- Threads pause cooperatively
-    
-Notes:
-
-The GIL used to ensure that **only one thread executed Python bytecode** at a time.
-
-Without it:
-
-- Threads transition between new states:    
-    - **ATTACHED** = actively running Python code.
-    - **DETACHED** = idle or outside Python.
-    - **GC** = paused for garbage collection.
-        
-
-During GC:
-- Threads in ATTACHED are signaled to pause and enter GC state.
-- Once GC finishes, threads either resume as ATTACHED or remain DETACHED if idle.
-    
-It’s a cooperative system inspired by other modern language runtimes, ensuring Python objects stay stable during GC cycles.
-</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" data-visibility="hidden" -->
-<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
-
-### Mimalloc: Helping Threads Share Memory Safely
-
-- Makes sure freed memory isn’t reused too soon
-- Tracks when threads are finished using memory
-- Helps avoid crashes from memory reuse
-- Allows faster list and dict access without locking
-- Organizes memory into separate groups for safety
-</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" data-visibility="hidden" -->
-<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
-
-### Python Critical Sections
-
-- Removing the GIL enables multithreading but risks deadlocks.
-- Nested per-object locks cause deadlocks if held together.
-- To avoid deadlocks, **outer locks are temporarily released** before acquiring inner locks.
-- Locks are resumed after nested operations finish.
-- Locks are also suspended around blocking calls like I/O.
-
-
-Notes:
-
-Python Critical Sections
-
-- Avoid deadlocks with nested locks
-- Critical sections suspend outer locks
-
-
-In a multi-threaded Python without the GIL:
-- A thread might hold multiple per-object locks during nested operations.
-- Different lock acquisition orders between threads could cause **deadlocks**.
-    
-To fix this, PEP 703 introduces **Python critical sections**:
-- Before a nested operation, outer locks are **suspended**.
-- When the nested operation completes, the outer locks are reacquired.
-- This prevents threads from blocking each other in unpredictable ways.
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-## 🐍 Python’s Future Without the GIL
+### Open Issues
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Still behind build flag    
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Library & package adoption
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Maintaining two runtimes
+- &shy;<!-- .element: class="fragment" data-fragment-index="4" -->Debugging & profiling gaps
+- &shy;<!-- .element: class="fragment" data-fragment-index="5" -->Higher memory use
+- &shy;<!-- .element: class="fragment" data-fragment-index="6" -->When is it stable?
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Python’s Future
 
 - &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Python can finally use many cores at once
 - &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Big speedups for multi-threaded programs
 - &shy;<!-- .element: class="fragment" data-fragment-index="3" -->New memory designs keep things safe
 - &shy;<!-- .element: class="fragment" data-fragment-index="4" -->Still the same Python we know
-- &shy;<!-- .element: class="fragment" data-fragment-index="5" -->**But:** Work still in progress, not all code will see speedups yet
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
 ### Any Questions?
 
+[bit.ly/nogil](https://bit.ly/nogil)
+
 <div class="" style="position: absolute; left: 0%; top: 70%; height: 30%; width: 40%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
 
-Yonatan Bitton [@bityob](https://linktr.ee/bityob)
+Yonatan Bitton
+</br>[@bityob](https://linktr.ee/bityob)
 </div>
 
 
