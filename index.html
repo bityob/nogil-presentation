@@ -96,10 +96,20 @@
 <div class="" style="position: absolute; left: 0%; top: 70%; height: 30%; width: 40%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
 
 Yonatan Bitton
-</br>
-[@bityob](https://linktr.ee/bityob)
+</br>[@bityob](https://linktr.ee/bityob)
+</br><a href="https://linktr.ee/bityob">linktr.ee/bityob</a>
 </div>
 
+<div class="" style="position: absolute; left: 60%; top: 70%; height: 30%; width: 40%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+
+</div>
+
+<div class="" style="position: absolute; left: 60%; top: 70%; height: 30%; width: 40%; display: flex; flex-direction: column; align-items: center; justify-content: center" >
+
+<img src="attachments/bityob.png" alt="" style="width: 150px; object-fit: fill">
+
+</div>
 
 Notes:
 - link to the slides
@@ -360,10 +370,6 @@ Done in 0.99 sec
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-### Reference Counting Fixes
-</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
-<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
-
 ### Biased Reference Counting
 
 - &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Objects are **biased** to the creating thread  
@@ -440,7 +446,16 @@ These objects live forever in memory — it’s a trade-off, but a smart one for
 ### Garbage Collection (GC)
 
 - &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Detects and collects **cyclic references** that reference counting misses 
-- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Uses **generational GC**: objects are grouped by age; older ones are scanned less often
+
+<img src="attachments/Pasted image 20250909000905.png" alt="" style="object-fit: scale-down">
+
+<!-- .element: class="fragment" -->
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Garbage Collection (GC)
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Uses **generational GC**: objects are grouped by age; older ones are scanned less often
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
@@ -470,7 +485,7 @@ These objects live forever in memory — it’s a trade-off, but a smart one for
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
-### Locking and atomic APIs
+### Per-object locks
 
 - &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Global locks like the **GIL** add overhead but **no deadlocks** if only one lock exists
 - &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Using **multiple locks** can cause **deadlocks** (e.g., double locks)
@@ -497,10 +512,35 @@ struct _object {
 
 ### Containers Thread-Safety
 
-- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->`list`, `dict`, `set` use **per-object locks**
-- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Modifying operations acquire the lock
-- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Some read operations (like `len()`) may skip locks
-- &shy;<!-- .element: class="fragment" data-fragment-index="4" -->**Optimistic access**: try lock-free access first, fallback acquires **per-object lock**
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->`list`, `dict`, `set` use **per-object locks** 
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Modifying operations **acquire the lock**
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Some read operations (e.g., `len()`) **skip the lock**
+- &shy;<!-- .element: class="fragment" data-fragment-index="4" -->**Optimistic access**: try **lock-free** reads first; fallback to per-object lock if needed
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+### Optimistic access
+
+- &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Read list/dict elements **without locking** when possible
+- &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Improves **multi-threaded scalability** and **single-threaded performance**
+- &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Retrieve item and **increment refcount only if > 0**
+- &shy;<!-- .element: class="fragment" data-fragment-index="4" -->Perform **extra checks** to ensure the object wasn’t freed or replaced
+
+Notes:
+
+- Some operations on `list` and `dict` **skip per-object locks** for performance. 
+- **Motivation 1:** Multi-threaded scaling
+    - Dictionaries hold module globals, class methods — heavily shared.
+    - Lock contention would hurt common workloads.
+- **Motivation 2:** Single-threaded performance
+    - Element access is frequent and fast; lock overhead is noticeable.
+- **Challenge:** Retrieving an item and incrementing its reference count is **not atomic**.
+- **Partial fix:** Conditional increment if refcount ≠ 0 — **not enough**.
+- **PEP 703 solution:**
+    - Restrict memory reuse (via separate heaps in mimalloc).
+    - Ensure reference count fields remain valid during access.
+    - Similar to **read-copy-update (RCU)**.
+- **Extra checks:** Validate the item pointer and array pointer after conditional increment to avoid returning stale or unrelated objects.
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
@@ -510,7 +550,7 @@ struct _object {
 - &shy;<!-- .element: class="fragment" data-fragment-index="2" -->Library & package adoption
 - &shy;<!-- .element: class="fragment" data-fragment-index="3" -->Maintaining two runtimes
 - &shy;<!-- .element: class="fragment" data-fragment-index="4" -->Debugging & profiling gaps
-- &shy;<!-- .element: class="fragment" data-fragment-index="5" -->Higher memory use
+- &shy;<!-- .element: class="fragment" data-fragment-index="5" -->Single-threaded performance overhead
 - &shy;<!-- .element: class="fragment" data-fragment-index="6" -->When is it stable?
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
