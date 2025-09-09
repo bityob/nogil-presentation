@@ -544,6 +544,44 @@ Notes:
 </div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
 <div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
 
+```cpp [1-4|6-11|13-15]
+// Attempt to read the item without a lock.
+// This is the optimistic, lock-free path
+PyObject** ob_item = atomic_load(&a->ob_item);
+PyObject* item = atomic_load(&ob_item[i]);
+
+// This is the optimistic check. If the item is NULL, or if _Py_TRY_INCREF
+// fails (e.g., because the object's reference count is zero), we fall back to
+// the safe, locked path.
+if (!item || !_Py_TRY_INCREF(item)) {
+    goto retry;
+}
+
+// More checks...
+// If all checks pass, we have a valid, thread-safe reference.
+return item;
+```
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
+```cpp
+// The 'retry' label handles the pessimistic, lock-based path.
+retry:
+  PyObject* retried_item;
+  
+  // Use a critical section to ensure exclusive access.
+  Py_BEGIN_CRITICAL_SECTION(a->ob_mutex);
+
+  retried_item = a->ob_item[i]; // Read the item from the list.
+  Py_INCREF(retried_item); // Increment the reference count.
+
+  Py_END_CRITICAL_SECTION(a->ob_mutex);
+  
+  return retried_item;
+```
+</div></script></section><section  data-markdown><script type="text/template"><!-- .slide: class="drop" -->
+<div class="" style="position: absolute; left: 0px; top: 0px; height: 700px; width: 1200px; min-height: 700px; display: flex; flex-direction: column; align-items: center; justify-content: center" absolute="true">
+
 ### Open Issues
 
 - &shy;<!-- .element: class="fragment" data-fragment-index="1" -->Still behind build flag    
